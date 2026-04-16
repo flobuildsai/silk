@@ -43,11 +43,20 @@ const STAGE_COPY: Record<Exclude<Stage, "idle" | "ready" | "error">, string> = {
 
 const STAGE_ORDER: (keyof typeof STAGE_COPY)[] = ["composing", "drafting", "checking", "rendering"];
 
-export function Studio({ initialPrompt }: { initialPrompt?: string } = {}) {
+type StudioMode = "describe" | "redesign";
+
+export function Studio({
+  initialPrompt,
+  initialUrl,
+}: { initialPrompt?: string; initialUrl?: string } = {}) {
+  const [mode, setMode] = useState<StudioMode>(
+    initialUrl && !initialPrompt ? "redesign" : "describe"
+  );
   const [archetype, setArchetype] = useState<ArchetypeKey>("minimalist-ui");
   const [prompt, setPrompt] = useState(
     initialPrompt?.trim() ? initialPrompt.trim() : findArchetype("minimalist-ui").starter
   );
+  const [url, setUrl] = useState(initialUrl?.trim() ?? "");
   const autoRanRef = useRef(false);
   const [stage, setStage] = useState<Stage>("idle");
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -177,10 +186,15 @@ export function Studio({ initialPrompt }: { initialPrompt?: string } = {}) {
     });
 
     try {
-      const res = await fetch("/api/generate", {
+      const endpoint = mode === "redesign" ? "/api/redesign" : "/api/generate";
+      const body =
+        mode === "redesign"
+          ? JSON.stringify({ url, archetype })
+          : JSON.stringify({ prompt, archetype });
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt, archetype }),
+        body,
       });
       if (lastRequestIdRef.current !== requestId) return;
       const data = (await res.json()) as GenerateResponse;
@@ -201,7 +215,7 @@ export function Studio({ initialPrompt }: { initialPrompt?: string } = {}) {
       setStage("error");
       setMeta({ error: err instanceof Error ? err.message : "Network error" });
     }
-  }, [archetype, prompt]);
+  }, [archetype, prompt, url, mode]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -220,8 +234,13 @@ export function Studio({ initialPrompt }: { initialPrompt?: string } = {}) {
     if (initialPrompt && initialPrompt.trim().length >= 8) {
       autoRanRef.current = true;
       void run();
+      return;
     }
-  }, [initialPrompt, run]);
+    if (initialUrl && initialUrl.trim().length >= 4) {
+      autoRanRef.current = true;
+      void run();
+    }
+  }, [initialPrompt, initialUrl, run]);
 
   const busy = stage !== "idle" && stage !== "ready" && stage !== "error";
   const [violationsOpen, setViolationsOpen] = useState(false);
@@ -267,22 +286,60 @@ export function Studio({ initialPrompt }: { initialPrompt?: string } = {}) {
         <div className="mx-auto max-w-6xl px-6 pt-10 pb-8">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1fr)_320px]">
             <div>
-              <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-ink-600">Brief</p>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
-                spellCheck
-                className="w-full resize-none rounded-2xl border border-black/10 bg-white px-5 py-4 font-display text-[20px] leading-[1.35] text-ink-900 placeholder:text-ink-600 focus:outline-none focus:ring-2 focus:ring-ink-900/10"
-                placeholder="Describe the site. One paragraph is plenty."
-              />
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-ink-600">Brief</p>
+                <div className="flex gap-1 rounded-full border border-black/10 bg-white/60 p-1 text-[10px] uppercase tracking-[0.22em]">
+                  <button
+                    onClick={() => setMode("describe")}
+                    className={`rounded-full px-3 py-1 transition ${mode === "describe" ? "bg-ink-900 text-white" : "text-ink-600 hover:text-ink-900"}`}
+                  >
+                    Describe
+                  </button>
+                  <button
+                    onClick={() => setMode("redesign")}
+                    className={`rounded-full px-3 py-1 transition ${mode === "redesign" ? "bg-ink-900 text-white" : "text-ink-600 hover:text-ink-900"}`}
+                  >
+                    Redesign from URL
+                  </button>
+                </div>
+              </div>
+              {mode === "describe" ? (
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  rows={4}
+                  spellCheck
+                  className="w-full resize-none rounded-2xl border border-black/10 bg-white px-5 py-4 font-display text-[20px] leading-[1.35] text-ink-900 placeholder:text-ink-600 focus:outline-none focus:ring-2 focus:ring-ink-900/10"
+                  placeholder="Describe the site. One paragraph is plenty."
+                />
+              ) : (
+                <input
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  inputMode="url"
+                  className="w-full rounded-2xl border border-black/10 bg-white px-5 py-4 font-mono text-[16px] leading-[1.5] text-ink-900 placeholder:text-ink-600 focus:outline-none focus:ring-2 focus:ring-ink-900/10"
+                  placeholder="https://your-site.com"
+                />
+              )}
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button
                   onClick={run}
-                  disabled={busy || prompt.trim().length < 8}
+                  disabled={
+                    busy ||
+                    (mode === "describe" ? prompt.trim().length < 8 : url.trim().length < 4)
+                  }
                   className="inline-flex h-11 items-center gap-2 rounded-md bg-ink-900 px-5 text-sm tracking-wide text-white transition hover:bg-black disabled:opacity-50"
                 >
-                  <span>{previewId ? "Regenerate" : "Generate"}</span>
+                  <span>
+                    {previewId
+                      ? "Regenerate"
+                      : mode === "redesign"
+                      ? "Redesign"
+                      : "Generate"}
+                  </span>
                   <span className="hidden text-[10px] uppercase tracking-[0.22em] opacity-60 sm:inline">
                     {isMac ? "\u2318\u21B5" : "Ctrl \u21B5"}
                   </span>
@@ -297,7 +354,9 @@ export function Studio({ initialPrompt }: { initialPrompt?: string } = {}) {
                   </button>
                 )}
                 <span className="text-xs text-ink-600">
-                  {prompt.trim().length} chars
+                  {mode === "describe"
+                    ? `${prompt.trim().length} chars`
+                    : url.trim() ? "source · live URL" : ""}
                 </span>
               </div>
             </div>

@@ -15,6 +15,40 @@ const ROOT = path.join(process.cwd(), ".silk");
 const SITES_DIR = path.join(ROOT, "sites");
 const SLUGS_DIR = path.join(ROOT, "slugs");
 
+/**
+ * When the filesystem is read-only (Vercel serverless, e.g.) or otherwise
+ * unwritable, we fall back to a module-scoped in-memory store. It's not
+ * durable across invocations, but it survives the single request + any
+ * in-flight previews, which is enough for a demo deploy.
+ */
+type MemStore = {
+  sites: Map<string, SiteRecord>;
+  slugs: Map<string, string>;
+};
+const g = globalThis as unknown as { __silkMem?: MemStore };
+const mem: MemStore =
+  g.__silkMem ??
+  (g.__silkMem = {
+    sites: new Map<string, SiteRecord>(),
+    slugs: new Map<string, string>(),
+  });
+
+let fsWritable: boolean | null = null;
+async function probeFsWritable(): Promise<boolean> {
+  if (fsWritable !== null) return fsWritable;
+  try {
+    await fs.mkdir(SITES_DIR, { recursive: true });
+    await fs.mkdir(SLUGS_DIR, { recursive: true });
+    const probe = path.join(ROOT, ".probe");
+    await fs.writeFile(probe, "ok", "utf8");
+    await fs.unlink(probe).catch(() => {});
+    fsWritable = true;
+  } catch {
+    fsWritable = false;
+  }
+  return fsWritable;
+}
+
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])?$/;
 const RESERVED_SLUGS = new Set([
   "api",
@@ -138,36 +172,56 @@ async function readJson<T>(file: string): Promise<T | null> {
   }
 }
 
-async function allocateSlug(): Promise<string> {
+async function allocateSlug(usingFs: boolean): Promise<string> {
   for (let i = 0; i < 16; i++) {
     const s = generateSlug();
-    const existing = await readJson<{ id: string }>(slugFile(s));
-    if (!existing) return s;
+    if (usingFs) {
+      const existing = await readJson<{ id: string }>(slugFile(s));
+      if (!existing) return s;
+    } else if (!mem.slugs.has(s)) {
+      return s;
+    }
   }
   return `site-${hex(8)}`;
 }
 
 export async function saveSite(spec: PageSpec): Promise<SiteRecord> {
-  await ensureDirs();
+  const usingFs = await probeFsWritable();
   const id = newSiteId();
-  const slug = await allocateSlug();
+  const slug = await allocateSlug(usingFs);
   const now = Date.now();
   const record: SiteRecord = { id, slug, spec, createdAt: now, updatedAt: now };
-  await writeJsonAtomic(siteFile(id), record);
-  await writeJsonAtomic(slugFile(slug), { id });
+  if (usingFs) {
+    await writeJsonAtomic(siteFile(id), record);
+    await writeJsonAtomic(slugFile(slug), { id });
+  } else {
+    mem.sites.set(id, record);
+    mem.slugs.set(slug, id);
+  }
   return record;
 }
 
 export async function getSiteById(id: string): Promise<SiteRecord | null> {
   if (!id || !/^[a-z0-9-]{1,64}$/i.test(id)) return null;
-  return readJson<SiteRecord>(siteFile(id));
+  const usingFs = await probeFsWritable();
+  if (usingFs) {
+    const r = await readJson<SiteRecord>(siteFile(id));
+    if (r) return r;
+    return mem.sites.get(id) ?? null;
+  }
+  return mem.sites.get(id) ?? null;
 }
 
 export async function getSiteBySlug(slug: string): Promise<SiteRecord | null> {
   if (validateSlugShape(slug)) return null;
-  const pointer = await readJson<{ id: string }>(slugFile(slug));
-  if (!pointer?.id) return null;
-  return getSiteById(pointer.id);
+  const usingFs = await probeFsWritable();
+  if (usingFs) {
+    const pointer = await readJson<{ id: string }>(slugFile(slug));
+    if (pointer?.id) return getSiteById(pointer.id);
+  }
+  const memId = mem.slugs.get(slug);
+  if (memId) return getSiteById(memId);
+  return null;
 }
 
 export type UpdateSlugResult =
@@ -181,18 +235,30 @@ export async function updateSlug(id: string, nextSlug: string): Promise<UpdateSl
   if (!record) return { ok: false, error: "not-found" };
   if (record.slug === nextSlug) return { ok: true, record };
 
-  const taken = await readJson<{ id: string }>(slugFile(nextSlug));
-  if (taken && taken.id !== id) return { ok: false, error: "taken" };
+  const usingFs = await probeFsWritable();
+  if (usingFs) {
+    const taken = await readJson<{ id: string }>(slugFile(nextSlug));
+    if (taken && taken.id !== id) return { ok: false, error: "taken" };
+  } else {
+    const takenId = mem.slugs.get(nextSlug);
+    if (takenId && takenId !== id) return { ok: false, error: "taken" };
+  }
 
   const updated: SiteRecord = { ...record, slug: nextSlug, updatedAt: Date.now() };
-  await writeJsonAtomic(siteFile(id), updated);
-  await writeJsonAtomic(slugFile(nextSlug), { id });
-  if (record.slug !== nextSlug) {
-    try {
-      await fs.unlink(slugFile(record.slug));
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  if (usingFs) {
+    await writeJsonAtomic(siteFile(id), updated);
+    await writeJsonAtomic(slugFile(nextSlug), { id });
+    if (record.slug !== nextSlug) {
+      try {
+        await fs.unlink(slugFile(record.slug));
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      }
     }
+  } else {
+    mem.sites.set(id, updated);
+    mem.slugs.set(nextSlug, id);
+    if (record.slug !== nextSlug) mem.slugs.delete(record.slug);
   }
   return { ok: true, record: updated };
 }
