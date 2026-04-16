@@ -26,7 +26,7 @@ export const portfolio: PageSpec = {
     {
       id: "hero",
       type: "hero",
-      motion: { entry: "reveal", durationMs: 720, delayMs: 0, easing: "circOut", staggerMs: 80 },
+      motion: { entry: "fade-up", durationMs: 720, delayMs: 0, easing: "circOut", staggerMs: 80 },
       eyebrow: "Independent — Q3 slots",
       headline: "Brand, identity, and product for teams that sweat the details.",
       sub: "Ten years across editorial, fintech, and climate. I ship work that reads like writing and feels like object design.",
