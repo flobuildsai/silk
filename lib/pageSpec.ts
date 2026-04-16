@@ -2,6 +2,29 @@ import { z } from "zod";
 
 const hexColor = z.string().regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
 
+export const ArchetypeEnum = z.enum([
+  "minimalist-ui",
+  "editorial-luxury",
+  "industrial-brutalist",
+]);
+export type ArchetypeKey = z.infer<typeof ArchetypeEnum>;
+
+export const DISPLAY_FONTS = [
+  "Fraunces",
+  "Playfair Display",
+  "Instrument Serif",
+  "Newsreader",
+  "Archivo Black",
+  "Geist",
+] as const;
+
+export const BODY_FONTS = [
+  "Geist",
+  "Manrope",
+  "IBM Plex Sans",
+  "Neue Haas Grotesk",
+] as const;
+
 export const ThemeSchema = z.object({
   palette: z.object({
     bg: hexColor,
@@ -11,8 +34,8 @@ export const ThemeSchema = z.object({
     accent2: hexColor.optional(),
   }),
   typography: z.object({
-    displayFont: z.enum(["Fraunces", "Playfair Display", "Instrument Serif", "Inter", "Geist"]),
-    bodyFont: z.enum(["Inter", "Geist", "IBM Plex Sans", "Manrope"]),
+    displayFont: z.enum(DISPLAY_FONTS),
+    bodyFont: z.enum(BODY_FONTS),
     scale: z.enum(["compact", "editorial", "oversized"]),
   }),
   radius: z.enum(["none", "sm", "md", "lg", "full"]).default("md"),
@@ -126,6 +149,7 @@ export type Section = z.infer<typeof SectionSchema>;
 
 export const PageSpecSchema = z.object({
   version: z.literal(1).default(1),
+  archetype: ArchetypeEnum.default("minimalist-ui"),
   meta: z.object({
     title: z.string().min(1).max(80),
     description: z.string().max(200),

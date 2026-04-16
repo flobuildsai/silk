@@ -2,6 +2,7 @@ import type { PageSpec } from "@/lib/pageSpec";
 
 export const landing: PageSpec = {
   version: 1,
+  archetype: "editorial-luxury",
   meta: {
     title: "Nocturne — a journaling app that writes with you",
     description: "A calm, AI-assisted journal that turns scattered thoughts into clarity.",
@@ -11,12 +12,12 @@ export const landing: PageSpec = {
       bg: "#F7F3EC",
       fg: "#171717",
       muted: "#6A6A66",
-      accent: "#E94F37",
+      accent: "#A34560",
       accent2: "#1B2A4E",
     },
     typography: {
       displayFont: "Fraunces",
-      bodyFont: "Inter",
+      bodyFont: "Geist",
       scale: "editorial",
     },
     radius: "lg",

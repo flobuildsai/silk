@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ALL_FONT_VARIABLES } from "@/lib/fonts";
 
 export const metadata: Metadata = {
-  title: "Silk — generate beautifully animated websites",
-  description: "Prompt → animated React site. v0 spike.",
+  title: "Silk — prompts into beautifully animated websites",
+  description:
+    "Describe a site in one paragraph. Silk returns a polished, animated landing page you can host in a click.",
 };
 
 export default function RootLayout({
@@ -12,8 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="en" className={ALL_FONT_VARIABLES}>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

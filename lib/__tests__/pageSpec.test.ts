@@ -7,10 +7,11 @@ import {
 
 const baseSpec = (): PageSpec => ({
   version: 1,
+  archetype: "editorial-luxury",
   meta: { title: "Test", description: "motion envelope fixtures" },
   theme: {
     palette: { bg: "#F7F3EC", fg: "#171717", muted: "#6A6A66", accent: "#E94F37" },
-    typography: { displayFont: "Fraunces", bodyFont: "Inter", scale: "editorial" },
+    typography: { displayFont: "Fraunces", bodyFont: "Geist", scale: "editorial" },
     radius: "lg",
   },
   sections: [

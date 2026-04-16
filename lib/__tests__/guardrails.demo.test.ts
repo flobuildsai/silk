@@ -3,8 +3,11 @@ import { runGuardrails, composeRepromptMessage } from "../guardrails";
 import { applyTasteEnvelope, type PageSpec } from "../pageSpec";
 
 // Intentionally dirty spec — archetypal generic-LLM output Silk must reject.
-const dirty: PageSpec = {
+// We cast through `unknown` so we can smuggle banned fonts ("Inter") past
+// the schema into the guardrail layer — that's what we're demo'ing.
+const dirty = {
   version: 1,
+  archetype: "minimalist-ui" as const,
   meta: { title: "AcmeAI — Unleash Your Creativity", description: "The next-gen AI copilot for designers." },
   theme: {
     palette: { bg: "#000000", fg: "#ffffff", muted: "#888888", accent: "#6366F1" },
@@ -41,7 +44,7 @@ const dirty: PageSpec = {
       note: "(c) 2026 Acme.",
     },
   ],
-};
+} as unknown as PageSpec;
 
 describe("[demo] guardrails reject a generic spec", () => {
   it("prints the violation report + corrective re-prompt", () => {
