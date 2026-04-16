@@ -4,6 +4,22 @@ Prompt → shareable, beautifully animated website. v0.
 
 Silk turns a single prompt into a structured `PageSpec`, renders it as an animated React landing page, and publishes it to a shareable URL. Taste is enforced at generation time — fonts, easings, spacing, and motion envelope are constrained so every output feels intentional.
 
+## Preview
+
+**One-click deploy** (fastest way to a live URL you can share):
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fflobuildsai%2Fsilk&project-name=silk&repository-name=silk&env=ANTHROPIC_API_KEY&envDescription=Leave+blank+to+render+the+fallback+fixture+for+every+prompt&branch=claude%2Fanimated-website-generator-K0Tsq)
+
+Static previews of the current build live under [`docs/screenshots/`](docs/screenshots). Fastest to skim:
+
+| Route | Screenshot |
+| --- | --- |
+| `/` (above the fold) | [`01-landing-top.png`](docs/screenshots/01-landing-top.png) |
+| `/` (full scroll) | [`02-landing-full.png`](docs/screenshots/02-landing-full.png) |
+| `/studio` | [`03-studio.png`](docs/screenshots/03-studio.png) |
+| `/demo` (editorial-luxury) | [`04-demo-editorial.png`](docs/screenshots/04-demo-editorial.png) |
+| `/portfolio` (editorial on dark) | [`05-portfolio.png`](docs/screenshots/05-portfolio.png) |
+
 ## Quickstart
 
 ```bash
