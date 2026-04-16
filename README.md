@@ -14,12 +14,17 @@ npm run dev
 
 Then open:
 
-- `/` — hand-written landing fixture
-- `/portfolio` — hand-written portfolio fixture
-- `/studio` — prompt box → live generation → publish
+- `/` — Silk's own animated landing page (the product marketing site)
+- `/studio` — prompt box → live generation → publish. Accepts `?prompt=…` so the landing can hand off to it.
+- `/demo` — hand-written editorial-luxury fixture (Nocturne)
+- `/portfolio` — hand-written editorial-luxury fixture (Ines Martel)
 - `/s/[slug]` — published site
 
 Without `ANTHROPIC_API_KEY`, `/api/generate` returns a deterministic fallback spec so the pipeline still renders end-to-end.
+
+### Design system
+
+Silk bundles the [leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) skills under `skills/`. The generator system prompt distills them into the operative contract. Three archetypes: `minimalist-ui`, `editorial-luxury`, `industrial-brutalist`. Each carries its own palette, typography (loaded via `next/font`), spacing, motion envelope, and component tokens.
 
 ## v0 scope
 

@@ -50,16 +50,19 @@ export function StaggerItem({
   spec,
   children,
   className,
+  style,
 }: {
   spec: MotionSpec;
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const reduce = useReducedMotion();
-  if (reduce) return <div className={className}>{children}</div>;
+  if (reduce) return <div className={className} style={style}>{children}</div>;
   return (
     <motion.div
       className={className}
+      style={style}
       variants={{
         hidden: { opacity: 0, y: 16 },
         show: {

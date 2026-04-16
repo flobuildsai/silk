@@ -5,6 +5,13 @@ import { ARCHETYPES, findArchetype, type ArchetypeKey } from "@/lib/archetypes";
 
 type Stage = "idle" | "composing" | "drafting" | "checking" | "rendering" | "ready" | "error";
 
+type Violation = {
+  severity: "error" | "warn";
+  message: string;
+  code?: string;
+  path?: string;
+};
+
 type GenerateResponse = {
   ok: boolean;
   error?: string;
@@ -16,7 +23,7 @@ type GenerateResponse = {
   slug?: string;
   shareUrl?: string;
   archetype?: string;
-  violations?: { severity: "error" | "warning"; message: string }[];
+  violations?: Violation[];
 };
 
 type RenameResponse = {
@@ -36,9 +43,12 @@ const STAGE_COPY: Record<Exclude<Stage, "idle" | "ready" | "error">, string> = {
 
 const STAGE_ORDER: (keyof typeof STAGE_COPY)[] = ["composing", "drafting", "checking", "rendering"];
 
-export function Studio() {
+export function Studio({ initialPrompt }: { initialPrompt?: string } = {}) {
   const [archetype, setArchetype] = useState<ArchetypeKey>("minimalist-ui");
-  const [prompt, setPrompt] = useState(findArchetype("minimalist-ui").starter);
+  const [prompt, setPrompt] = useState(
+    initialPrompt?.trim() ? initialPrompt.trim() : findArchetype("minimalist-ui").starter
+  );
+  const autoRanRef = useRef(false);
   const [stage, setStage] = useState<Stage>("idle");
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [siteId, setSiteId] = useState<string | null>(null);
@@ -205,8 +215,18 @@ export function Studio() {
     return () => window.removeEventListener("keydown", onKey);
   }, [run]);
 
+  useEffect(() => {
+    if (autoRanRef.current) return;
+    if (initialPrompt && initialPrompt.trim().length >= 8) {
+      autoRanRef.current = true;
+      void run();
+    }
+  }, [initialPrompt, run]);
+
   const busy = stage !== "idle" && stage !== "ready" && stage !== "error";
-  const blockingViolations = (meta.violations ?? []).filter((v) => v.severity === "error");
+  const [violationsOpen, setViolationsOpen] = useState(false);
+  const violations = meta.violations ?? [];
+  const blockingViolations = violations.filter((v) => v.severity === "error");
 
   const currentStageIndex = useMemo(() => {
     const order = STAGE_ORDER as string[];
@@ -217,7 +237,13 @@ export function Studio() {
     <div className="flex min-h-[100dvh] flex-col bg-ink-50 text-ink-900">
       <header className="border-b border-black/5">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-4">
-          <span className="font-display text-[22px] leading-none tracking-tight">Silk</span>
+          <a href="/" className="flex items-center gap-2" aria-label="Back to Silk home">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: "#A34560" }}
+            />
+            <span className="font-display text-[22px] leading-none tracking-tight">Silk</span>
+          </a>
           <span className="rounded-full border border-ink-900/12 px-2 py-0.5 text-[10px] uppercase tracking-[0.22em] text-ink-600">
             studio · v0
           </span>
@@ -311,14 +337,32 @@ export function Studio() {
           <p className="text-[11px] uppercase tracking-[0.2em] text-ink-600">Preview</p>
           <div className="flex-1" />
           {busy && <StageLadder currentIndex={Math.max(0, currentStageIndex)} />}
-          {stage === "ready" && meta.violations && meta.violations.length > 0 && (
-            <span className="text-xs text-[#A34560]">
+          {stage === "ready" && violations.length > 0 && (
+            <button
+              onClick={() => setViolationsOpen((o) => !o)}
+              className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs transition ${
+                blockingViolations.length > 0
+                  ? "border-[#A34560]/40 text-[#A34560] hover:border-[#A34560]/70"
+                  : "border-black/15 text-ink-600 hover:border-black/30"
+              }`}
+              aria-expanded={violationsOpen}
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: blockingViolations.length > 0 ? "#A34560" : "#9A8F6F" }}
+              />
               {blockingViolations.length > 0
                 ? `${blockingViolations.length} taste error${blockingViolations.length === 1 ? "" : "s"}`
-                : `${meta.violations.length} warning${meta.violations.length === 1 ? "" : "s"}`}
-            </span>
+                : `${violations.length} warning${violations.length === 1 ? "" : "s"}`}
+              <span className="text-[10px] uppercase tracking-[0.22em] opacity-60">
+                {violationsOpen ? "hide" : "details"}
+              </span>
+            </button>
           )}
         </div>
+        {stage === "ready" && violations.length > 0 && violationsOpen && (
+          <ViolationsPanel violations={violations} onRegenerate={run} busy={busy} />
+        )}
         {stage === "ready" && slug && (
           <ShareBar
             origin={origin}
@@ -456,6 +500,64 @@ function Toast({ message }: { message: string | null }) {
       className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-ink-900 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white shadow-soft"
     >
       {message}
+    </div>
+  );
+}
+
+function ViolationsPanel({
+  violations,
+  onRegenerate,
+  busy,
+}: {
+  violations: Violation[];
+  onRegenerate: () => void;
+  busy: boolean;
+}) {
+  const errors = violations.filter((v) => v.severity === "error");
+  const warns = violations.filter((v) => v.severity === "warn");
+  return (
+    <div className="mb-3 rounded-2xl border border-black/10 bg-white/80 p-4 text-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-ink-600">
+          <span>Taste report</span>
+          <span className="text-ink-900/30">·</span>
+          <span>
+            {errors.length} error{errors.length === 1 ? "" : "s"}
+          </span>
+          <span className="text-ink-900/30">·</span>
+          <span>
+            {warns.length} warning{warns.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <button
+          onClick={onRegenerate}
+          disabled={busy}
+          className="rounded-md bg-ink-900 px-3 py-1 text-xs text-white transition active:scale-[0.98] disabled:opacity-50"
+        >
+          Regenerate with fixes
+        </button>
+      </div>
+      <ul className="flex flex-col divide-y divide-black/[0.06]">
+        {[...errors, ...warns].map((v, i) => (
+          <li key={i} className="flex items-start gap-3 py-2.5">
+            <span
+              className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: v.severity === "error" ? "#A34560" : "#9A8F6F" }}
+              aria-hidden
+            />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-ink-600">
+                <span>{v.severity === "error" ? "error" : "warning"}</span>
+                {v.code && <span className="font-mono text-ink-900/50">{v.code}</span>}
+                {v.path && (
+                  <span className="font-mono truncate text-ink-900/50">{v.path}</span>
+                )}
+              </div>
+              <span className="text-sm leading-relaxed text-ink-900">{v.message}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

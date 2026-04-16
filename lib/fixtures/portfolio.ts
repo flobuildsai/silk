@@ -2,6 +2,7 @@ import type { PageSpec } from "@/lib/pageSpec";
 
 export const portfolio: PageSpec = {
   version: 1,
+  archetype: "editorial-luxury",
   meta: {
     title: "Ines Martel — independent designer",
     description: "Brand and product design for ambitious small teams.",
@@ -16,7 +17,7 @@ export const portfolio: PageSpec = {
     },
     typography: {
       displayFont: "Instrument Serif",
-      bodyFont: "Inter",
+      bodyFont: "Geist",
       scale: "oversized",
     },
     radius: "sm",
