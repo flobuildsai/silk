@@ -15,6 +15,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { Marquee } from "@/components/motion/Marquee";
 import { WordMask } from "./WordMask";
 import { DevicePreview } from "./DevicePreview";
+import { CinematicStage } from "./CinematicStage";
 import { PromptPanel, type PromptMode } from "./PromptPanel";
 import type { MotionSpec } from "@/lib/pageSpec";
 
@@ -103,6 +104,7 @@ export function Landing() {
         onTrySuggestion={(value) => submit({ mode: "describe", value })}
       />
 
+      <CinematicStage />
       <TickerBand />
       <StickyFeatures />
       <ArchetypeShowcase />
@@ -191,93 +193,74 @@ function HeroBlock({
   onTrySuggestion: (v: string) => void;
 }) {
   return (
-    <section className="relative z-10 px-6 pt-12 pb-24 md:pt-16 md:pb-28">
-      <div className="mx-auto max-w-[1320px]">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)] lg:gap-14 xl:gap-20">
-          {/* Left: copy + prompt */}
-          <div className="flex flex-col">
-            <Reveal
-              spec={{ entry: "fade", durationMs: 500, delayMs: 0, easing: "easeOut", staggerMs: 0 }}
-              as="div"
-              className="mb-6 inline-flex w-max items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-[10px] uppercase tracking-[0.28em] text-white/65 backdrop-blur-md"
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[#D6A76A]"
-                style={{ boxShadow: "0 0 12px rgba(214,167,106,0.75)" }}
-              />
-              v0 · private beta · an Eisberg.ai project
-            </Reveal>
+    <section className="relative z-10 px-6 pt-20 pb-20 md:pt-28 md:pb-24">
+      <div className="mx-auto max-w-[1100px] text-center">
+        <Reveal
+          spec={{ entry: "fade", durationMs: 500, delayMs: 0, easing: "easeOut", staggerMs: 0 }}
+          as="div"
+          className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-[10px] uppercase tracking-[0.28em] text-white/65 backdrop-blur-md"
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full bg-[#D6A76A]"
+            style={{ boxShadow: "0 0 14px rgba(214,167,106,0.85)" }}
+          />
+          v0 · private beta · an Eisberg.ai project
+        </Reveal>
 
-            <h1 className="font-display text-[clamp(2.25rem,5.2vw,5.25rem)] leading-[0.96] tracking-[-0.035em]">
-              <WordMask text="Websites worth shipping." as="span" />
-              <br />
-              <span className="text-white/45">
-                <WordMask
-                  text="From one paragraph."
-                  as="span"
-                  delay={0.55}
-                  stagger={0.07}
-                />
-              </span>
-            </h1>
+        <h1 className="font-display text-[clamp(2.75rem,8.4vw,9rem)] leading-[0.93] tracking-[-0.04em]">
+          <WordMask text="Websites worth shipping." as="span" />
+          <br />
+          <span className="text-white/42">
+            <WordMask text="From one paragraph." as="span" delay={0.55} stagger={0.07} />
+          </span>
+        </h1>
 
-            <Reveal
-              spec={{ entry: "fade-up", durationMs: 700, delayMs: 900, easing: "easeOut", staggerMs: 0 }}
-              as="div"
-              className="mt-7 max-w-xl text-[15px] leading-relaxed text-white/60 md:text-[17px]"
-            >
-              Silk reads your brief, commits to a design archetype, and renders
-              an animated, taste-constrained landing page in about twelve
-              seconds. Re-roll. Rename the slug. Share the URL. Or paste a site
-              you already run and have Silk redesign it.
-            </Reveal>
+        <Reveal
+          spec={{ entry: "fade-up", durationMs: 700, delayMs: 950, easing: "easeOut", staggerMs: 0 }}
+          as="div"
+          className="mx-auto mt-10 max-w-2xl text-[17px] leading-relaxed text-white/60 md:text-[19px]"
+        >
+          Silk reads your brief, commits to a design archetype, and renders an
+          animated, taste-constrained landing page in about twelve seconds.
+          Re-roll. Rename the slug. Share the URL. Or paste a site you already
+          run and have Silk redesign it.
+        </Reveal>
 
-            <Reveal
-              spec={{ entry: "fade-up", durationMs: 700, delayMs: 1100, easing: "easeOut", staggerMs: 0 }}
-              as="div"
-              className="mt-8"
-            >
-              <PromptPanel
-                mode={mode}
-                value={mode === "describe" ? prompt : url}
-                placeholder={placeholder}
-                onModeChange={onModeChange}
-                onChange={mode === "describe" ? onPromptChange : onUrlChange}
-                onSubmit={onSubmit}
-              />
-            </Reveal>
+        <Reveal
+          spec={{ entry: "fade-up", durationMs: 700, delayMs: 1150, easing: "easeOut", staggerMs: 0 }}
+          as="div"
+          className="mx-auto mt-12 max-w-2xl"
+        >
+          <PromptPanel
+            mode={mode}
+            value={mode === "describe" ? prompt : url}
+            placeholder={placeholder}
+            onModeChange={onModeChange}
+            onChange={mode === "describe" ? onPromptChange : onUrlChange}
+            onSubmit={onSubmit}
+          />
+        </Reveal>
 
-            {mode === "describe" && (
-              <Reveal
-                spec={{ entry: "fade", durationMs: 500, delayMs: 1300, easing: "easeOut", staggerMs: 0 }}
-                as="div"
-                className="mt-5 flex flex-wrap items-center gap-2"
-              >
-                <span className="text-[10px] uppercase tracking-[0.26em] text-white/30">
-                  Try
-                </span>
-                {PROMPT_SUGGESTIONS.slice(0, 3).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => onTrySuggestion(s)}
-                    className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-[11px] text-white/60 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white/90"
-                  >
-                    {truncate(s, 38)}
-                  </button>
-                ))}
-              </Reveal>
-            )}
-          </div>
-
-          {/* Right: big cycling device preview */}
+        {mode === "describe" && (
           <Reveal
-            spec={{ entry: "fade-up", durationMs: 900, delayMs: 400, easing: "easeOut", staggerMs: 0 }}
+            spec={{ entry: "fade", durationMs: 500, delayMs: 1350, easing: "easeOut", staggerMs: 0 }}
             as="div"
-            className="relative"
+            className="mx-auto mt-5 flex max-w-3xl flex-wrap items-center justify-center gap-2"
           >
-            <DevicePreview />
+            <span className="text-[10px] uppercase tracking-[0.26em] text-white/30">
+              Try
+            </span>
+            {PROMPT_SUGGESTIONS.slice(0, 3).map((s) => (
+              <button
+                key={s}
+                onClick={() => onTrySuggestion(s)}
+                className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-[11px] text-white/60 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white/90"
+              >
+                {truncate(s, 38)}
+              </button>
+            ))}
           </Reveal>
-        </div>
+        )}
       </div>
     </section>
   );
